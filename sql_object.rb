@@ -27,5 +27,25 @@ class SQLObject
     @table_name
   end
 
+  def initialize(params = {})
+    raise "Invalid params" unless params.is_a?(Hash)
+    params.keys.each do |attr|
+      unless self.class.columns.include?(attr.to_sym)
+        raise "unknown attribute '#{attr}'"
+      end
+      self.send("#{attr}=".to_sym, params[attr])
+    end
+  end
 
+
+  #must be called manually after each subclass definition
+  def self.finalize!
+    columns.each do |column|
+      define_method(column) { attributes[column] }
+
+      define_method("#{column}=") do |val|
+         attributes[column] = val
+       end
+    end
+  end
 end
