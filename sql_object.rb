@@ -27,16 +27,36 @@ class SQLObject
     @table_name
   end
 
-  def initialize(params = {})
-    raise "Invalid params" unless params.is_a?(Hash)
-    params.keys.each do |attr|
-      unless self.class.columns.include?(attr.to_sym)
-        raise "unknown attribute '#{attr}'"
-      end
-      self.send("#{attr}=".to_sym, params[attr])
-    end
+  def self.all
+    all_query = DBConnection.execute(<<-SQL )
+    SELECT
+      *
+    FROM
+    "#{table_name}"
+    SQL
+    parse_all(all_query)
   end
 
+  def self.parse_all(results)
+    arr = []
+    results.each do |result_hash|
+      arr.push(self.new(result_hash))
+    end
+    arr
+  end
+
+  def self.find(id)
+    query = DBConnection.execute(<<-SQL, id)
+      SELECT
+        *
+      FROM
+      "#{table_name}"
+      WHERE
+      id = ?
+    SQL
+
+    return parse_all(query)[0] if query
+  end
 
   #must be called manually after each subclass definition
   def self.finalize!
@@ -46,6 +66,17 @@ class SQLObject
       define_method("#{column}=") do |val|
          attributes[column] = val
        end
+    end
+  end
+
+  def initialize(params = {})
+    raise "Invalid params" unless params.is_a?(Hash)
+
+    params.keys.each do |attr|
+      unless self.class.columns.include?(attr.to_sym)
+        raise "unknown attribute '#{attr}'"
+      end
+      self.send("#{attr}=".to_sym, params[attr])
     end
   end
 end
