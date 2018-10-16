@@ -79,4 +79,51 @@ class SQLObject
       self.send("#{attr}=".to_sym, params[attr])
     end
   end
+
+  def attributes
+    @attributes ||= {}
+  end
+
+  def save
+    self.id.nil? ? insert : update
+  end
+
+
+  private
+
+  def attribute_values
+    attrs = attributes.keys
+    vals = attrs.map do |val|
+      self.send(val)
+    end
+    attrs = attrs.map(&:to_s).join(", ")
+    [attrs, vals]
+  end
+
+  def insert
+    attrs, vals = attribute_values
+    question_marks = ('?' * vals.length ).split("").join(", ")
+    DBConnection.execute(<<-SQL, *vals)
+    INSERT INTO
+    #{self.class.table_name} (#{attrs})
+    VALUES
+    (#{question_marks})
+    SQL
+    self.id = DBConnection.last_insert_row_id
+  end
+
+  def update
+    attrs, vals = attribute_values
+    attributes = attrs.split(', ').map do |attr|
+      "#{attr} = ?"
+    end.join(', ')
+    DBConnection.execute(<<-SQL, *vals, id)
+    UPDATE
+    #{self.class.table_name}
+    SET
+    #{attributes}
+    WHERE
+    #{self.class.table_name}.id = ?
+    SQL
+  end
 end
