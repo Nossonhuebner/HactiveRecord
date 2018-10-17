@@ -5,6 +5,7 @@ require 'active_support/inflector' #formats 'ClassName' to 'class_names'
 class SQLObject
   def self.columns
     unless @columns
+      # ::execute2 returns column names as first element
       query = DBConnection.execute2(<<-SQL)
       SELECT
         *
@@ -32,7 +33,7 @@ class SQLObject
     SELECT
       *
     FROM
-    "#{table_name}"
+      "#{table_name}"
     SQL
     parse_all(all_query)
   end
@@ -50,9 +51,9 @@ class SQLObject
       SELECT
         *
       FROM
-      "#{table_name}"
+        "#{table_name}"
       WHERE
-      id = ?
+        id = ?
     SQL
 
     return parse_all(query)[0] if query
@@ -104,10 +105,10 @@ class SQLObject
     attrs, vals = attribute_values
     question_marks = ('?' * vals.length ).split("").join(", ")
     DBConnection.execute(<<-SQL, *vals)
-    INSERT INTO
-    #{self.class.table_name} (#{attrs})
-    VALUES
-    (#{question_marks})
+      INSERT INTO
+        #{self.class.table_name} (#{attrs})
+      VALUES
+        (#{question_marks})
     SQL
     self.id = DBConnection.last_insert_row_id
   end
@@ -118,12 +119,12 @@ class SQLObject
       "#{attr} = ?"
     end.join(', ')
     DBConnection.execute(<<-SQL, *vals, id)
-    UPDATE
-    #{self.class.table_name}
-    SET
-    #{attributes}
-    WHERE
-    #{self.class.table_name}.id = ?
+      UPDATE
+        #{self.class.table_name}
+      SET
+        #{attributes}
+      WHERE
+        #{self.class.table_name}.id = ?
     SQL
   end
 end
